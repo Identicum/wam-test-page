@@ -1,7 +1,7 @@
-<%@page import="java.util.List"%>
+<%@page import="java.util.Base64"%>
 <%@page import="java.util.Collections"%>
 <%@page import="java.util.Enumeration"%>
-<%@page import="sun.misc.BASE64Decoder"%>
+<%@page import="java.util.List"%>
 <%
 String[][] otherParameters =
 			{ { "AUTH_TYPE", request.getAuthType() },
@@ -86,7 +86,7 @@ String[][] otherParameters =
 								</thead>
 								<tbody>
 								<%
-								for(int i=0; i<otherParameters.length; i++) 
+								for(int i=0; i<otherParameters.length; i++)
 								{
 									%>
 									<tr>
@@ -133,11 +133,12 @@ String[][] otherParameters =
 								<h5>No basic authentication header detected !</h5>
 								<%
 							}
-							else 
+							else
 							{
 								String credentials = authorization.substring(6).trim();
-								BASE64Decoder decoder = new BASE64Decoder();
-								String chunks[] = new String(decoder.decodeBuffer(credentials)).split(":");
+								byte[] decodedBytes = Base64.getDecoder().decode(credentials);
+								String decodedString = new String(decodedBytes);
+								String chunks[] = decodedString.split(":");
 								%>
 								<table class="table table-striped code-content">
 									<thead>
@@ -185,14 +186,14 @@ String[][] otherParameters =
 											<tr>
 												<td><%= parameterName %></td>
 												<td class="bold"><%= request.getParameter(parameterName) %></td>
-											</tr>	
+											</tr>
 											<%
 										}
 										%>
 									</tbody>
 								</table>
 							<%
-						} 
+						}
 						else
 						{
 							%>
@@ -221,14 +222,14 @@ String[][] otherParameters =
 											<tr>
 												<td><%= parameterName %></td>
 												<td class="bold"><%= request.getParameter(parameterName) %></td>
-											</tr>	
+											</tr>
 											<%
 										}
 										%>
 									</tbody>
 								</table>
 							<%
-						} 
+						}
 						else
 						{
 							%>
