@@ -69,7 +69,7 @@ String[][] otherParameters =
 					<div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
 						<a class="nav-link active" id="v-pills-page-context-tab" data-toggle="pill" href="#v-pills-page-context" role="tab" aria-controls="v-pills-page-context" aria-selected="true">Page Context</a>
 						<a class="nav-link" id="v-pills-http-headers-tab" data-toggle="pill" href="#v-pills-http-headers" role="tab" aria-controls="v-pills-http-headers" aria-selected="true">Http Headers</a>
-						<a class="nav-link" id="v-pills-basic-tab" data-toggle="pill" href="#v-pills-basic" role="tab" aria-controls="v-pills-basic" aria-selected="false">Basic Auth</a>
+						<a class="nav-link" id="v-pills-basic-tab" data-toggle="pill" href="#v-pills-basic" role="tab" aria-controls="v-pills-basic" aria-selected="false">Auth Header</a>
 						<a class="nav-link" id="v-pills-http-post-tab" data-toggle="pill" href="#v-pills-http-post" role="tab" aria-controls="v-pills-http-post" aria-selected="false">Post parameters</a>
 						<a class="nav-link" id="v-pills-http-get-tab" data-toggle="pill" href="#v-pills-http-get" role="tab" aria-controls="v-pills-http-get" aria-selected="false">Get parameters</a>
 					</div>
@@ -130,35 +130,26 @@ String[][] otherParameters =
 							if (authorization == null)
 							{
 								%>
-								<h5>No basic authentication header detected !</h5>
+								<h5>No HTTP authorization header detected !</h5>
 								<%
 							}
 							else
 							{
-								String credentials = authorization.substring(6).trim();
-								byte[] decodedBytes = Base64.getDecoder().decode(credentials);
-								String decodedString = new String(decodedBytes);
-								String chunks[] = decodedString.split(":");
 								%>
-								<table class="table table-striped code-content">
-									<thead>
-										<tr>
-											<th style="min-width: 300px">Header</th>
-											<th>Value</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td>Username</td>
-											<td class="bold"><%= chunks[0] %></td>
-										</tr>
-										<tr>
-											<td>Password</td>
-											<td class="bold"><%= chunks[1] %></td>
-										</tr>
-									</tbody>
-								</table>
+									Header: <b><%= authorization %></b><br/>
 								<%
+								if (authorization.substring(0, 6).equals("Basic "))
+								{
+									String credentials = authorization.substring(6).trim();
+									byte[] decodedBytes = Base64.getDecoder().decode(credentials);
+									String decodedString = new String(decodedBytes);
+									String chunks[] = decodedString.split(":");
+									%>
+									Type: <b>BASIC</b><br/>
+									Username: <b><%= chunks[0] %></b><br/>
+									Password: <b><%= chunks[1] %></b><br/>
+									<%
+								}
 							}
 							%>
 						</div>
