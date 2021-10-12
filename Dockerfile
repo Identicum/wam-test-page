@@ -1,4 +1,4 @@
-FROM tomcat:8-jdk11-openjdk-slim
+FROM identicum/centos-tomcat:latest
 LABEL maintainer="Gustavo J Gallardo <ggallard@identicum.com>"
 
 ADD src ./webapps/ROOT/
