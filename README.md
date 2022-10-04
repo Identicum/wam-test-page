@@ -24,5 +24,5 @@ For Tomcat:
     git clone git@github.com:Identicum/wam-test-page.git
 ```
 
-and start browsing <http://server:port/wam-test-page/src/index.jsp>
-
+and start browsing:
+<http://server:port/wam-test-page/src/index.jsp>
