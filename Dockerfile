@@ -1,5 +1,4 @@
-FROM identicum/centos-tomcat:latest
-LABEL maintainer="Gustavo J Gallardo <ggallard@identicum.com>"
+FROM ghcr.io/identicum/centos-tomcat:latest
 
 ADD src ./webapps/ROOT/
 
