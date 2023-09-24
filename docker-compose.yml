@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  wtp:
+    container_name: wtp
+    image: ghcr.io/identicum/wam-test-page:latest
+    restart: always
+    ports:
+      - 8080:8080
+

@@ -1,4 +1,4 @@
-FROM ghcr.io/identicum/centos-tomcat:latest
+FROM ghcr.io/identicum/alpine-jre17-tomcat9:latest
 
 ADD src ./webapps/ROOT/
 
