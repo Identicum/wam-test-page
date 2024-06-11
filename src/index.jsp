@@ -1,9 +1,28 @@
+<%@page import="java.util.ArrayList"%>
 <%@page import="java.util.Base64"%>
 <%@page import="java.util.Collections"%>
 <%@page import="java.util.Enumeration"%>
 <%@page import="java.util.List"%>
 <%
 String responseType = request.getHeader("Accept");
+
+List<String> headerNames = Collections.list(request.getHeaderNames());
+Collections.sort(headerNames);
+
+List<String> getParameters = new ArrayList<>();
+if(request.getMethod().equals("GET")) {
+	getParameters = Collections.list(request.getParameterNames());
+	Collections.sort(getParameters);
+}
+
+List<String> postParameters = new ArrayList<>();
+if(request.getMethod().equals("GET")) {
+	postParameters = Collections.list(request.getParameterNames());
+	Collections.sort(postParameters);
+}
+
+String authorizationHeader = request.getHeader("Authorization");
+
 String[][] otherParameters =
 			{ { "AUTH_TYPE", request.getAuthType() },
 				{ "DOCUMENT_ROOT", getServletContext().getRealPath("/") },
@@ -19,46 +38,41 @@ String[][] otherParameters =
 				{ "SERVER_PORT", String.valueOf(request.getServerPort()) },
 				{ "SERVER_PROTOCOL", request.getProtocol() },
 				{ "SERVER_SOFTWARE", getServletContext().getServerInfo() } };
-				// Verificar si el tipo de respuesta es JSON
-boolean isJSONResponse = responseType != null && responseType.equals("application/json");
 
-if (isJSONResponse) {
+if (responseType != null && responseType.equals("application/json")) {
     response.setContentType("application/json");
     out.print("{");
     
-    // Print HTTP headers
     out.print("\"http_headers\": {");
-    List<String> headerNames = Collections.list(request.getHeaderNames());
-    Collections.sort(headerNames);
     for (String headerName : headerNames) {
         out.print("\"" + headerName + "\": \"" + request.getHeader(headerName) + "\",");
     }
     out.print("},");
     
-    // Print GET parameters
     out.print("\"get_parameters\": {");
-    List<String> parameterNames = Collections.list(request.getParameterNames());
-    Collections.sort(parameterNames);
-    for (String parameterName : parameterNames) {
-        out.print("\"" + parameterName + "\": \"" + request.getParameter(parameterName) + "\",");
+    for (String getParameter : getParameters) {
+        out.print("\"" + getParameter + "\": \"" + request.getParameter(getParameter) + "\",");
     }
     out.print("},");
     
-    // Print POST parameters if available
-    if (request.getMethod().equals("POST")) {
-        out.print("\"post_parameters\": {");
-        for (String parameterName : parameterNames) {
-            out.print("\"" + parameterName + "\": \"" + request.getParameter(parameterName) + "\",");
-        }
-        out.print("},");
+    out.print("\"post_parameters\": {");
+    for (String postParameter : postParameters) {
+        out.print("\"" + postParameter + "\": \"" + request.getParameter(postParameter) + "\",");
     }
+    out.print("},");
     
-    // Print Authorization header if available
-    String authorization = request.getHeader("Authorization");
-    if (authorization != null) {
-        out.print("\"authorization_header\": \"" + authorization + "\",");
-    }
-    
+    out.print("\"authorization_header\": \"" + authorizationHeader + "\",");
+
+    out.print("\"other_parameters\": {");
+	for(int i=0; i<otherParameters.length; i++)
+	{
+		out.print(otherParameters[i][0]);
+		out.print("=");
+		out.print(otherParameters[i][1]);
+		out.print(",");
+	}
+    out.print("},");
+
     out.print("}");
 } else {
  %>
@@ -152,8 +166,6 @@ if (isJSONResponse) {
 								</thead>
 								<tbody>
 								<%
-									List<String> headerNames = Collections.list(request.getHeaderNames());
-									Collections.sort(headerNames);
 									for(String headerName : headerNames)
 									{
 										%>
@@ -169,8 +181,7 @@ if (isJSONResponse) {
 						</div>
 						<div class="tab-pane fade" id="v-pills-basic" role="tabpanel" aria-labelledby="v-pills-basic-tab">
 							<%
-							String authorization = request.getHeader("Authorization");
-							if (authorization == null)
+							if (authorizationHeader == null)
 							{
 								%>
 								<h5>No HTTP authorization header detected !</h5>
@@ -179,11 +190,11 @@ if (isJSONResponse) {
 							else
 							{
 								%>
-									Header: <b><%= authorization %></b><br/>
+									Header: <b><%= authorizationHeader %></b><br/>
 								<%
-								if (authorization.substring(0, 6).equals("Basic "))
+								if (authorizationHeader.substring(0, 6).equals("Basic "))
 								{
-									String credentials = authorization.substring(6).trim();
+									String credentials = authorizationHeader.substring(6).trim();
 									byte[] decodedBytes = Base64.getDecoder().decode(credentials);
 									String decodedString = new String(decodedBytes);
 									String chunks[] = decodedString.split(":");
@@ -196,13 +207,9 @@ if (isJSONResponse) {
 							}
 							%>
 						</div>
-						<%
-							List<String> parameterNames = Collections.list(request.getParameterNames());
-							Collections.sort(parameterNames);
-						%>
 						<div class="tab-pane fade" id="v-pills-http-post" role="tabpanel" aria-labelledby="v-pills-http-post-tab">
 						<%
-						if(request.getMethod().equals("POST") && !parameterNames.isEmpty())
+						if(!postParameters.isEmpty())
 						{
 							%>
 							<table class="table table-striped code-content">
@@ -214,12 +221,12 @@ if (isJSONResponse) {
 									</thead>
 									<tbody>
 										<%
-										for(String parameterName:parameterNames)
+										for(String postParameter:postParameters)
 										{
 											%>
 											<tr>
-												<td><%= parameterName %></td>
-												<td class="bold"><%= request.getParameter(parameterName) %></td>
+												<td><%= postParameter %></td>
+												<td class="bold"><%= request.getParameter(postParameter) %></td>
 											</tr>
 											<%
 										}
@@ -231,14 +238,14 @@ if (isJSONResponse) {
 						else
 						{
 							%>
-							<h5>No post paramenters detected !</h5>
+							<h5>No POST paramenters received!</h5>
 							<%
 						}
 						%>
 						</div>
 						<div class="tab-pane fade" id="v-pills-http-get" role="tabpanel" aria-labelledby="v-pills-http-get-tab">
 						<%
-						if(request.getMethod().equals("GET") && !parameterNames.isEmpty())
+						if(!getParameters.isEmpty())
 						{
 							%>
 							<table class="table table-striped code-content">
@@ -250,12 +257,12 @@ if (isJSONResponse) {
 									</thead>
 									<tbody>
 										<%
-										for(String parameterName:parameterNames)
+										for(String getParameter:getParameters)
 										{
 											%>
 											<tr>
-												<td><%= parameterName %></td>
-												<td class="bold"><%= request.getParameter(parameterName) %></td>
+												<td><%= getParameter %></td>
+												<td class="bold"><%= request.getParameter(getParameter) %></td>
 											</tr>
 											<%
 										}
@@ -267,7 +274,7 @@ if (isJSONResponse) {
 						else
 						{
 							%>
-							<h5>No post paramenters detected !</h5>
+							<h5>No GET paramenters received!</h5>
 							<%
 						}
 						%>
