@@ -1,10 +1,10 @@
-version: '3'
-
 services:
   wtp:
     container_name: wtp
     image: ghcr.io/identicum/wam-test-page:latest
+    pull_policy: always
     restart: always
     ports:
       - 8080:8080
-
+    volumes:
+      - ./src/:/usr/local/tomcat/webapps/ROOT/
