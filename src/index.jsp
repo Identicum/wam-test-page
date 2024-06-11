@@ -3,6 +3,7 @@
 <%@page import="java.util.Enumeration"%>
 <%@page import="java.util.List"%>
 <%
+String responseType = request.getHeader("Accept");
 String[][] otherParameters =
 			{ { "AUTH_TYPE", request.getAuthType() },
 				{ "DOCUMENT_ROOT", getServletContext().getRealPath("/") },
@@ -18,6 +19,48 @@ String[][] otherParameters =
 				{ "SERVER_PORT", String.valueOf(request.getServerPort()) },
 				{ "SERVER_PROTOCOL", request.getProtocol() },
 				{ "SERVER_SOFTWARE", getServletContext().getServerInfo() } };
+				// Verificar si el tipo de respuesta es JSON
+boolean isJSONResponse = responseType != null && responseType.equals("application/json");
+
+if (isJSONResponse) {
+    response.setContentType("application/json");
+    out.print("{");
+    
+    // Print HTTP headers
+    out.print("\"http_headers\": {");
+    List<String> headerNames = Collections.list(request.getHeaderNames());
+    Collections.sort(headerNames);
+    for (String headerName : headerNames) {
+        out.print("\"" + headerName + "\": \"" + request.getHeader(headerName) + "\",");
+    }
+    out.print("},");
+    
+    // Print GET parameters
+    out.print("\"get_parameters\": {");
+    List<String> parameterNames = Collections.list(request.getParameterNames());
+    Collections.sort(parameterNames);
+    for (String parameterName : parameterNames) {
+        out.print("\"" + parameterName + "\": \"" + request.getParameter(parameterName) + "\",");
+    }
+    out.print("},");
+    
+    // Print POST parameters if available
+    if (request.getMethod().equals("POST")) {
+        out.print("\"post_parameters\": {");
+        for (String parameterName : parameterNames) {
+            out.print("\"" + parameterName + "\": \"" + request.getParameter(parameterName) + "\",");
+        }
+        out.print("},");
+    }
+    
+    // Print Authorization header if available
+    String authorization = request.getHeader("Authorization");
+    if (authorization != null) {
+        out.print("\"authorization_header\": \"" + authorization + "\",");
+    }
+    
+    out.print("}");
+} else {
  %>
 <!doctype html>
 <html lang="en">
@@ -242,3 +285,6 @@ String[][] otherParameters =
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
 	</body>
 </html>
+<%
+}
+%>

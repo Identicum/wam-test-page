@@ -12,3 +12,7 @@ docker run -d \
     -p 8080:8080 \
     ghcn.io/identicum/wam-test-page:latest
 ```
+
+## Llamada curl para response JSON
+
+curl -H "Accept: application/json"  http://localhost:8080
