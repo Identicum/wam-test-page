@@ -1,5 +1,9 @@
-FROM ghcr.io/identicum/alpine-jre17-tomcat9:latest
+FROM ghcr.io/identicum/python-flask:latest
 
-ADD src ./webapps/ROOT/
-RUN apk add --no-cache curl
-HEALTHCHECK --interval=10s --timeout=1s --start-period=4s --retries=5 CMD curl --fail http://localhost:8080/ || exit 1
+COPY ./app/ /app
+
+# sherpa's Logger writes to a file, not stdout; symlink it like the base image
+# does for /tmp/python-flask.log so `docker logs` shows our log lines.
+RUN ln -sf /dev/stdout /tmp/wam-test-page.log
+
+ENV LOG_LEVEL=INFO

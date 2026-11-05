@@ -1,0 +1,176 @@
+{%- macro kv_table(items, first="Name", empty="Nothing received.") -%}
+	{%- if items %}
+	<table>
+		<thead><tr><th>{{ first }}</th><th>Value</th></tr></thead>
+		<tbody>
+		{%- for name, value in items.items() %}
+			{%- if value is string or value is not iterable %}
+			<tr><td>{{ name }}</td><td class="value">{{ value if value is not none else "" }}</td></tr>
+			{%- else %}
+			{%- for v in value %}
+			<tr><td>{{ name }}{% if loop.length > 1 %} <span class="badge">{{ loop.index }}/{{ loop.length }}</span>{% endif %}</td><td class="value">{{ v }}</td></tr>
+			{%- endfor %}
+			{%- endif %}
+		{%- endfor %}
+		</tbody>
+	</table>
+	{%- else %}
+	<p class="empty">{{ empty }}</p>
+	{%- endif %}
+{%- endmacro -%}
+
+{%- macro jwt_view(jwt) -%}
+	{%- if jwt.times %}
+	<table class="compact">
+		<tbody>
+		{%- for claim, when in jwt.times.items() %}
+			<tr><td>{{ claim }}</td><td class="value">{{ when }}</td></tr>
+		{%- endfor %}
+		</tbody>
+	</table>
+	{%- endif %}
+	<div class="jwt">
+		<div><h4>Header</h4><pre>{{ jwt.header | tojson(indent=2) }}</pre></div>
+		<div><h4>Payload</h4><pre>{{ jwt.payload | tojson(indent=2) }}</pre></div>
+	</div>
+	<p class="note">Decoded only; the signature is not verified.</p>
+{%- endmacro -%}
+
+{%- set auth = data.authorization_details -%}
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>WAM Test Page</title>
+	<style>
+		:root {
+			--bg: #f6f7f9; --surface: #fff; --text: #1d2330; --muted: #667085; --border: #e3e6eb;
+			--accent: #1f5fbf; --stripe: #f9fafb; --code: #f2f4f7;
+		}
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--bg: #12151b; --surface: #1a1e26; --text: #e6e8ec; --muted: #98a2b3; --border: #2b313c;
+				--accent: #6ea8ff; --stripe: #1e232c; --code: #232934;
+			}
+			header img { background: #fff; border-radius: 6px; padding: 3px 6px; }
+		}
+		* { box-sizing: border-box; }
+		body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+		header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; }
+		header .bar { max-width: 1100px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+		header img { height: 32px; }
+		header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+		nav { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+		nav a { color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 14px; }
+		nav a:hover { background: var(--code); color: var(--text); }
+		main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+		section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; scroll-margin-top: 70px; }
+		h2 { font-size: 16px; margin: 0 0 12px; }
+		h3 { font-size: 14px; margin: 16px 0 8px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+		h4 { font-size: 13px; margin: 0 0 4px; color: var(--muted); font-weight: 600; }
+		.summary { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; overflow-wrap: anywhere; }
+		.summary .method { font-weight: 700; color: var(--accent); }
+		table { width: 100%; border-collapse: collapse; font-size: 14px; }
+		th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); padding: 6px 8px; }
+		td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid var(--border); }
+		tbody tr:nth-child(even) { background: var(--stripe); }
+		td:first-child { width: 30%; min-width: 140px; color: var(--muted); font-family: ui-monospace, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+		td.value { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 600; overflow-wrap: anywhere; word-break: break-word; }
+		table.compact { width: auto; margin-bottom: 8px; }
+		pre { background: var(--code); border-radius: 6px; padding: 10px; margin: 0; overflow-x: auto; font-size: 13px; }
+		.jwt { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+		@media (max-width: 700px) { .jwt { grid-template-columns: 1fr; } td:first-child { width: 40%; } }
+		.badge { font-size: 11px; background: var(--code); border-radius: 4px; padding: 0 5px; }
+		.empty, .note { color: var(--muted); margin: 0; }
+		.note { font-size: 13px; margin-top: 6px; }
+		footer { text-align: center; color: var(--muted); font-size: 13px; padding: 8px 16px 24px; }
+		footer a { color: var(--muted); }
+	</style>
+</head>
+<body>
+	<header>
+		<div class="bar">
+			<img src="{{ url_for('static', filename='logo_identicum.png') }}" alt="Identicum">
+			<h1>WAM Test Page</h1>
+			<nav>
+				<a href="#context">Context</a>
+				<a href="#headers">Headers</a>
+				<a href="#auth">Authorization</a>
+				<a href="#get">GET</a>
+				<a href="#post">POST</a>
+				<a href="#cookies">Cookies</a>
+			</nav>
+		</div>
+	</header>
+	<main>
+		<section id="context">
+			<h2>Page context</h2>
+			<p class="summary"><span class="method">{{ data.request.method }}</span> {{ data.request.url }}</p>
+			{{ kv_table(data.other_parameters, first="Variable") }}
+		</section>
+
+		<section id="headers">
+			<h2>HTTP headers</h2>
+			{{ kv_table(data.http_headers, first="Header", empty="No headers received.") }}
+			{%- for name, jwt in data.jwt_headers.items() %}
+			<h3>{{ name }} (JWT)</h3>
+			{{ jwt_view(jwt) }}
+			{%- endfor %}
+		</section>
+
+		<section id="auth">
+			<h2>Authorization header</h2>
+			{%- if auth is none %}
+			<p class="empty">No HTTP Authorization header received.</p>
+			{%- else %}
+			<table>
+				<tbody>
+					<tr><td>Header</td><td class="value">{{ data.authorization_header }}</td></tr>
+					<tr><td>Scheme</td><td class="value">{{ auth.scheme }}</td></tr>
+					{%- if auth.username is defined %}
+					<tr><td>Username</td><td class="value">{{ auth.username }}</td></tr>
+					<tr><td>Password</td><td class="value">{{ auth.password }}</td></tr>
+					{%- endif %}
+					{%- if auth.error is defined %}
+					<tr><td>Error</td><td class="value">{{ auth.error }}</td></tr>
+					{%- endif %}
+				</tbody>
+			</table>
+			{%- if auth.jwt is defined %}
+			<h3>Bearer token (JWT)</h3>
+			{{ jwt_view(auth.jwt) }}
+			{%- endif %}
+			{%- endif %}
+		</section>
+
+		<section id="get">
+			<h2>GET parameters</h2>
+			{{ kv_table(data.get_parameters, first="Parameter", empty="No GET parameters received.") }}
+		</section>
+
+		<section id="post">
+			<h2>POST parameters</h2>
+			{{ kv_table(data.post_parameters, first="Parameter", empty="No POST parameters received.") }}
+			{%- if data.files %}
+			<h3>Files</h3>
+			{{ kv_table(data.files, first="Field") }}
+			{%- endif %}
+			{%- if data.body %}
+			<h3>Request body ({{ data.body.length }} bytes{% if data.body.truncated %}, truncated{% endif %})</h3>
+			<pre>{% if data.body.json is defined %}{{ data.body.json | tojson(indent=2) }}{% else %}{{ data.body.text }}{% endif %}</pre>
+			{%- endif %}
+		</section>
+
+		<section id="cookies">
+			<h2>Cookies</h2>
+			{{ kv_table(data.cookies, first="Cookie", empty="No cookies received.") }}
+		</section>
+	</main>
+	<footer>
+		<a href="https://identicum.com">&copy; Identicum</a> &middot;
+		<a href="https://github.com/Identicum/wam-test-page">GitHub</a> &middot;
+		Add <code>Accept: application/json</code> to get this data as JSON.
+	</footer>
+</body>
+</html>
